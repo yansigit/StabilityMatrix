@@ -6,6 +6,7 @@ pipeline {
         REPO_NAME = "StabilityMatrix"
         AUTHOR = "yansigit"
         CONTAINER_IMAGE = "mcr.microsoft.com/dotnet/sdk:8.0"
+        CONTAINER_ARGS = '--rm --security-opt label=disable -v ${WORKSPACE}:/app:Z -w /app'
     }
 
     stages {
@@ -31,7 +32,13 @@ pipeline {
         
         stage('Test') {
             steps {
-                sh "${env.PODMAN_CMD} run --rm -v \${WORKSPACE}:/app -w /app ${env.CONTAINER_IMAGE} dotnet test StabilityMatrix.Tests"
+                sh """
+                    ${PODMAN_CMD} run ${CONTAINER_ARGS} \
+                    --userns=keep-id \
+                    --user=\$(id -u):\$(id -g) \
+                    mcr.microsoft.com/dotnet/sdk:8.0 \
+                    dotnet test StabilityMatrix.Tests
+                """
             }
         }
 
