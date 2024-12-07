@@ -1,0 +1,62 @@
+node {
+    def repoName = "StabilityMatrix"
+    def author = "yansigit"
+    def version = ""
+    def containerImage = "mcr.microsoft.com/dotnet/sdk:8.0"
+
+    stage('Clean') {
+        deleteDir()
+    }
+
+    stage('Checkout') {
+        git branch: env.BRANCH_NAME, credentialsId: 'jenkins-github-token', url: "https://github.com/${author}/${repoName}.git"
+    }
+    
+    stage('Setup Container') {
+        sh "podman pull ${containerImage}"
+    }
+    
+    try {    
+        stage('Test') {
+            sh "podman run --rm -v \${WORKSPACE}:/app -w /app ${containerImage} dotnet test StabilityMatrix.Tests"
+        }
+
+        if (env.BRANCH_NAME == 'main') {
+            stage('Set Version') {
+                script {
+                    if (env.TAG_NAME) {
+                        version = env.TAG_NAME.replaceFirst(/^v/, '')
+                    } else {
+                        version = VersionNumber projectStartDate: '2023-06-21', versionNumberString: '${BUILDS_ALL_TIME}', worstResultForIncrement: 'SUCCESS'
+                    }
+                }
+            }
+            
+            stage('Publish Windows') {
+                sh """
+                    podman run --rm -v \${WORKSPACE}:/app -w /app ${containerImage} \
+                    dotnet publish ./StabilityMatrix.Avalonia/StabilityMatrix.Avalonia.csproj \
+                    -c Release -o out -r win-x64 -p:PublishSingleFile=true \
+                    -p:VersionPrefix=2.0.0 -p:VersionSuffix=${version} \
+                    -p:IncludeNativeLibrariesForSelfExtract=true
+                """
+            }
+
+            stage('Publish Linux') {
+                sh "podman run --rm -v \${WORKSPACE}:/app -w /app ${containerImage} rm -rf StabilityMatrix.Avalonia/bin/*"
+                sh "podman run --rm -v \${WORKSPACE}:/app -w /app ${containerImage} rm -rf StabilityMatrix.Avalonia/obj/*"
+                
+                // Note: pupnet needs to be installed in the container or use a custom container image with pupnet
+                sh """
+                    podman run --rm -v \${WORKSPACE}:/app -w /app ${containerImage} \
+                    dotnet tool install -g pupnet && \
+                    pupnet --runtime linux-x64 --kind appimage --app-version ${version} --clean -y
+                """
+            }
+        }
+    } finally {
+        stage('Cleanup') {
+            cleanWs()
+        }
+    }
+}
