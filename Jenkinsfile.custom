@@ -6,12 +6,15 @@ pipeline {
         REPO_NAME = "StabilityMatrix"
         AUTHOR = "yansigit"
         CONTAINER_IMAGE = "mcr.microsoft.com/dotnet/sdk:8.0"
-        CONTAINER_ARGS = '--rm --security-opt label=disable -v ${WORKSPACE}:/app:Z -w /app'
+        CONTAINER_ARGS = '--rm -v ${WORKSPACE}:/app -w /app -e HUSKY=0'
+        DOTNET_ARGS = '/p:DebugType=None /nodeReuse:false /maxcpucount:1 /verbosity:diagnostic'
     }
 
     parameters {
         booleanParam(defaultValue: true, name: 'SKIP_CLEANUP', description: '')
-        booleanParam(defaultValue: false, name: 'SKIP_CHECKOUT', description: '')
+        booleanParam(defaultValue: true, name: 'SKIP_CHECKOUT', description: '')
+        booleanParam(defaultValue: true, name: 'SKIP_IMAGE_PULL', description: '')
+        booleanParam(defaultValue: true, name: 'SKIP_DOTNET_TEST', description: '')
     }
 
     stages {
@@ -36,6 +39,9 @@ pipeline {
         }
         
         stage('Setup Container') {
+            when {
+                expression { !params.SKIP_IMAGE_PULL }
+            }
             steps {
                 sh "${env.PODMAN_CMD} pull ${env.CONTAINER_IMAGE}"
                 sh "${env.PODMAN_CMD} image prune -f"
@@ -43,20 +49,21 @@ pipeline {
         }
         
         stage('Test') {
+            when {
+                expression { !params.SKIP_DOTNET_TEST }
+            }
             steps {
                 sh """
                     ${PODMAN_CMD} run ${CONTAINER_ARGS} \
-                    --userns=keep-id \
-                    --user=\$(id -u):\$(id -g) \
-                    mcr.microsoft.com/dotnet/sdk:8.0 \
-                    dotnet test StabilityMatrix.Tests
-                """
-            }
+                    ${CONTAINER_IMAGE} \
+                    dotnet test StabilityMatrix.Tests \
+                    ${DOTNET_ARGS}
+                """            }
         }
 
         stage('Main Branch Tasks') {
             when {
-                branch 'main'
+                branch 'develop'
             }
             stages {
                 stage('Set Version') {
@@ -78,21 +85,21 @@ pipeline {
                 stage('Publish Windows') {
                     steps {
                         sh """
-                            ${env.PODMAN_CMD} run --rm -v \${WORKSPACE}:/app -w /app ${env.CONTAINER_IMAGE} \
+                            ${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} \
                             dotnet publish ./StabilityMatrix.Avalonia/StabilityMatrix.Avalonia.csproj \
                             -c Release -o out -r win-x64 -p:PublishSingleFile=true \
                             -p:VersionPrefix=2.0.0 -p:VersionSuffix=${env.VERSION} \
-                            -p:IncludeNativeLibrariesForSelfExtract=true
+                            -p:IncludeNativeLibrariesForSelfExtract=true ${DOTNET_ARGS}
                         """
                     }
                 }
 
                 stage('Publish Linux') {
                     steps {
-                        sh "${env.PODMAN_CMD} run --rm -v \${WORKSPACE}:/app -w /app ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/bin/*"
-                        sh "${env.PODMAN_CMD} run --rm -v \${WORKSPACE}:/app -w /app ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/obj/*"
+                        sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/bin/*"
+                        sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/obj/*"
                         sh """
-                            ${env.PODMAN_CMD} run --rm -v \${WORKSPACE}:/app -w /app ${env.CONTAINER_IMAGE} \
+                            ${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} \
                             dotnet tool install -g pupnet && \
                             pupnet --runtime linux-x64 --kind appimage --app-version ${env.VERSION} --clean -y
                         """
