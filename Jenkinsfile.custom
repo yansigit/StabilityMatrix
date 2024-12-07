@@ -118,6 +118,25 @@ pipeline {
         always {
             script {
                 if (!params.SKIP_CLEANUP) {
+                    def dirsToDelete = [
+                        'Avalonia.Gif/bin/*',
+                        'Avalonia.Gif/obj/*',
+                        'StabilityMatrix.Core/bin/*',
+                        'StabilityMatrix.Core/obj/*',
+                        'StabilityMatrix.Native/bin/*',
+                        'StabilityMatrix.Native/obj/*',
+                        'StabilityMatrix.Native.Abstractions/bin/*',
+                        'StabilityMatrix.Native.Abstractions/obj/*',
+                        'StabilityMatrix.Native.Windows/bin/*',
+                        'StabilityMatrix.Native.Windows/obj/*',
+                        'StabilityMatrix.Avalonia/bin/*',
+                        'StabilityMatrix.Avalonia/obj/*',
+                        '.dotnet'
+                    ]
+                    dirsToDelete.each { dir ->
+                        sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf ${dir}"
+                    }
+                    sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} chown 993:993 -R out"
                     cleanWs()
                 }
                 if (!params.SKIP_REMOVE_IMAGE) {
