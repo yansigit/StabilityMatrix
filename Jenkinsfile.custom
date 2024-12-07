@@ -104,7 +104,7 @@ pipeline {
                         sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/obj/*"
                         sh """
                             ${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} \
-                            dotnet tool install -g pupnet --add-source https://www.myget.org/F/pupnet/api/v3/index.json && \
+                            dotnet tool install -g KuiperZone.PupNet && \
                             pupnet --runtime linux-x64 --kind appimage --app-version ${env.VERSION} --clean -y
                         """
                     }
