@@ -7,7 +7,7 @@ pipeline {
         AUTHOR = "yansigit"
         CONTAINER_IMAGE = "mcr.microsoft.com/dotnet/sdk:8.0"
         CONTAINER_ARGS = '--rm -v ${WORKSPACE}:/app -w /app -e HUSKY=0'
-        DOTNET_ARGS = '/p:DebugType=None /nodeReuse:false /maxcpucount:1 /verbosity:diagnostic'
+        DOTNET_ARGS = '/p:DebugType=None /nodeReuse:false /maxcpucount:1'
     }
 
     parameters {
@@ -100,7 +100,7 @@ pipeline {
                         sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/obj/*"
                         sh """
                             ${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} \
-                            dotnet tool install -g pupnet && \
+                            dotnet tool install -g pupnet --add-source https://www.myget.org/F/pupnet/api/v3/index.json && \
                             pupnet --runtime linux-x64 --kind appimage --app-version ${env.VERSION} --clean -y
                         """
                     }
