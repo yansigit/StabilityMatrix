@@ -81,7 +81,7 @@ pipeline {
                 sh """
                     ${PODMAN_CMD} run ${CONTAINER_ARGS} \
                     ${CONTAINER_IMAGE} \
-                    dotnet test StabilityMatrix.Tests \
+                    dotnet test -r linux-x64 StabilityMatrix.Tests \
                     ${DOTNET_ARGS}
                 """            }
         }
