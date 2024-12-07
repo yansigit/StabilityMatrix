@@ -9,14 +9,25 @@ pipeline {
         CONTAINER_ARGS = '--rm --security-opt label=disable -v ${WORKSPACE}:/app:Z -w /app'
     }
 
+    params {
+        booleanParam(defaultValue: true, name: 'SKIP_CLEANUP', description: '')
+        booleanParam(defaultValue: false, name: 'SKIP_CHECKOUT', description: '')
+    }
+
     stages {
         stage('Clean') {
+            when {
+                expression { !params.SKIP_CLEANUP }
+            }
             steps {
                 deleteDir()
             }
         }
 
         stage('Checkout') {
+            when {
+                expression { !params.SKIP_CHECKOUT }
+            }
             steps {
                 git branch: env.BRANCH_NAME, 
                     credentialsId: 'jenkins-github-token', 
@@ -27,6 +38,7 @@ pipeline {
         stage('Setup Container') {
             steps {
                 sh "${env.PODMAN_CMD} pull ${env.CONTAINER_IMAGE}"
+                sh "${env.PODMAN_CMD} image prune -f"
             }
         }
         
@@ -92,7 +104,12 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            script {
+                if (!params.SKIP_CLEANUP) {
+                    cleanWs()
+                }
+                sh "${env.PODMAN_CMD} system prune -f"
+            }
         }
     }
 }
