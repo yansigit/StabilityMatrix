@@ -15,6 +15,7 @@ pipeline {
         booleanParam(defaultValue: true, name: 'SKIP_CHECKOUT', description: '')
         booleanParam(defaultValue: true, name: 'SKIP_IMAGE_PULL', description: '')
         booleanParam(defaultValue: true, name: 'SKIP_DOTNET_TEST', description: '')
+        booleanParam(defaultValue: true, name: 'SKIP_LINUX_PUBLISH', description: '')
     }
 
     stages {
@@ -95,6 +96,9 @@ pipeline {
                 }
 
                 stage('Publish Linux') {
+                    when {
+                        expression { !params.SKIP_LINUX_PUBLISH }
+                    }
                     steps {
                         sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/bin/*"
                         sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf StabilityMatrix.Avalonia/obj/*"
