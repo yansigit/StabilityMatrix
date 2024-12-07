@@ -9,7 +9,7 @@ pipeline {
         CONTAINER_ARGS = '--rm --security-opt label=disable -v ${WORKSPACE}:/app:Z -w /app'
     }
 
-    params {
+    parameters {
         booleanParam(defaultValue: true, name: 'SKIP_CLEANUP', description: '')
         booleanParam(defaultValue: false, name: 'SKIP_CHECKOUT', description: '')
     }
