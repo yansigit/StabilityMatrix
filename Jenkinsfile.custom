@@ -136,7 +136,7 @@ pipeline {
                     dirsToDelete.each { dir ->
                         sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} rm -rf ${dir}"
                     }
-                    sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} chown 993:993 -R out"
+                    sh "${env.PODMAN_CMD} run ${CONTAINER_ARGS} ${env.CONTAINER_IMAGE} sh -c '[ -d out ] && chown 993:993 -R out || echo \"out directory does not exist\"'"
                     cleanWs()
                 }
                 if (!params.SKIP_REMOVE_IMAGE) {
