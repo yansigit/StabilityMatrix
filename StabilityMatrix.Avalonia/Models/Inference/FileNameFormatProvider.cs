@@ -30,7 +30,7 @@ public partial class FileNameFormatProvider
             { "negative_prompt", () => GenerationParameters?.NegativePrompt },
             { "model_name", () => Path.GetFileNameWithoutExtension(GenerationParameters?.ModelName) },
             { "model_hash", () => GenerationParameters?.ModelHash },
-            { "sampler", () => GenerationParameters?.Sampler },
+            { "sampler", () => GenerationParameters?.Sampler?.Replace(" ", "_") },
             { "cfgscale", () => GenerationParameters?.CfgScale.ToString() },
             { "steps", () => GenerationParameters?.Steps.ToString() },
             { "width", () => GenerationParameters?.Width.ToString() },
