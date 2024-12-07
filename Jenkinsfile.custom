@@ -11,11 +11,12 @@ pipeline {
     }
 
     parameters {
-        booleanParam(defaultValue: true, name: 'SKIP_CLEANUP', description: '')
-        booleanParam(defaultValue: true, name: 'SKIP_CHECKOUT', description: '')
-        booleanParam(defaultValue: true, name: 'SKIP_IMAGE_PULL', description: '')
-        booleanParam(defaultValue: true, name: 'SKIP_DOTNET_TEST', description: '')
+        booleanParam(defaultValue: false, name: 'SKIP_CLEANUP', description: '')
+        booleanParam(defaultValue: false, name: 'SKIP_CHECKOUT', description: '')
+        booleanParam(defaultValue: false, name: 'SKIP_IMAGE_PULL', description: '')
+        booleanParam(defaultValue: false , name: 'SKIP_DOTNET_TEST', description: '')
         booleanParam(defaultValue: true, name: 'SKIP_LINUX_PUBLISH', description: '')
+        booleanParam(defaultValue: false, name: 'SKIP_REMOVE_IMAGE', description: '')
     }
 
     stages {
@@ -118,6 +119,9 @@ pipeline {
             script {
                 if (!params.SKIP_CLEANUP) {
                     cleanWs()
+                }
+                if (!params.SKIP_REMOVE_IMAGE) {
+                    sh "${env.PODMAN_CMD} rmi ${env.CONTAINER_IMAGE}"
                 }
                 sh "${env.PODMAN_CMD} system prune -f"
             }
