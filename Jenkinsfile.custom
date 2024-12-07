@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PODMAN_CMD = 'echo "NOPASSWORD" | sudo -S podman'
+        PODMAN_CMD = 'sudo -u podman podman'
         REPO_NAME = "StabilityMatrix"
         AUTHOR = "yansigit"
         CONTAINER_IMAGE = "mcr.microsoft.com/dotnet/sdk:8.0"
